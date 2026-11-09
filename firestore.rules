@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTask(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 1000)) &&
+             (data.priority in ['low', 'medium', 'high', 'urgent']) &&
+             (data.status in ['todo', 'in_progress', 'completed']) &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 50 &&
+             data.isCompleted is bool &&
+             (!('dueDate' in data) || data.dueDate == null || data.dueDate is timestamp) &&
+             (!('completedAt' in data) || data.completedAt == null || data.completedAt is timestamp) &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 10 && (data.tags.size() == 0 || data.tags[0] is string)));
+    }
+
+    // User task subcollection
+    match /users/{userId}/tasks/{taskId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(taskId);
+      allow list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(taskId) &&
+                       incoming().userId == userId &&
+                       incoming().keys().hasAll(['userId', 'title', 'priority', 'status', 'category', 'isCompleted', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'description', 'priority', 'status', 'category', 'dueDate', 'isCompleted', 'completedAt', 'tags', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidTask(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(taskId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidTask(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'description', 'priority', 'status', 'category', 'dueDate', 'isCompleted', 'completedAt', 'tags', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(taskId);
+    }
+  }
+}

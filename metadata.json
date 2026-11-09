@@ -1,0 +1,6 @@
+{
+  "name": "SyncTasks",
+  "description": "A task management application with real-time syncing and offline capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

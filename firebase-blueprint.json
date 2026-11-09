@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "Represents a user's task with priority, category, completion status, and tags.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user who owns the task."
+        },
+        "title": {
+          "type": "string",
+          "description": "Short title describing the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed notes or description for the task."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "urgent"],
+          "description": "Priority level of the task."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["todo", "in_progress", "completed"],
+          "description": "Current lifecycle state of the task."
+        },
+        "category": {
+          "type": "string",
+          "description": "Category or folder for the task."
+        },
+        "dueDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional due date timestamp."
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Flag indicating if the task has been marked complete."
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the task was marked completed."
+        },
+        "tags": {
+          "type": "array",
+          "description": "Bounded array of string tags."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp; clients must submit FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp; clients must submit FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "title", "priority", "status", "category", "isCompleted", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": {
+        "$ref": "#/entities/Task"
+      },
+      "description": "User-isolated collection of tasks enabling real-time sync and offline storage."
+    }
+  }
+}
